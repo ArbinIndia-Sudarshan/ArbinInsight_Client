@@ -1,160 +1,253 @@
 import { useEffect, useMemo, useState } from "react";
-import { periods } from "./data/dashboardData";
-import type { Period, StatusDistribution } from "./models/dashboard";
-import type { Machine } from "./models/machine";
-import DetailSidebar from "./components/DetailSidebar";
-import LineChart from "./components/LineChart";
-import MachineDetailsPage from "./components/MachineDetailsPage";
-import MachineGrid from "./components/MachineGrid";
-import MetricStrip from "./components/MetricStrip";
-import StatusDistributionCard from "./components/StatusDistributionCard";
-import SummaryPanel from "./components/SummaryPanel";
 import TopBar from "./components/TopBar";
-import { useDashboard } from "./hooks/useDashboard";
+import AppSidebar, { type SidebarItem } from "./components/AppSidebar";
+import MachineDetailsPage from "./components/MachineDetailsPage";
+import ExecutiveSummaryPage from "./components/dashboard/ExecutiveSummaryPage";
+import MachineStatusPage from "./components/dashboard/MachineStatusPage";
+import { PageShell } from "./components/dashboard/DashboardShared";
+import { periods } from "./data/dashboardData";
+import { useUdpBridge } from "./hooks/useUdpBridge";
+import type { Machine, MachineChannel } from "./models/machine";
 
-type AppView = "overview" | "machine-details";
+type AppView =
+  | "overview"
+  | "shift-performance"
+  | "machine-status"
+  | "yield"
+  | "alarms"
+  | "throughput"
+  | "channels"
+  | "reports"
+  | "machine-details";
+
+const sidebarItems: SidebarItem[] = [
+  { id: "overview", label: "Executive Summary", section: "Overview", icon: "grid" },
+  { id: "shift-performance", label: "Shift Performance", section: "Overview", icon: "clock" },
+  { id: "machine-status", label: "Machine Status", section: "Overview", icon: "machine" },
+  { id: "yield", label: "Yield & Pass Rate", section: "Quality", icon: "yield" },
+  { id: "alarms", label: "Alarms & Faults", section: "Quality", icon: "alert" },
+  { id: "throughput", label: "Throughput", section: "Operations", icon: "throughput" },
+  { id: "channels", label: "Channel Utilization", section: "Operations", icon: "channels" },
+  { id: "reports", label: "Reports", section: "Operations", icon: "report" },
+];
 
 function App() {
-  const [activePeriod, setActivePeriod] = useState<Period>("Weekly");
-  const { dashboard, isLoading, error } = useDashboard(activePeriod);
+  const { beacon, isConnected } = useUdpBridge();
+  const [machines, setMachines] = useState<Machine[]>([]);
   const [selectedMachineId, setSelectedMachineId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<AppView>("overview");
-  const machines = dashboard?.machines ?? [];
-  const currentDashboard = dashboard?.dashboardPeriodData ?? { summaryStats: [], metricCards: [], trendSeries: [] };
-  const selectedMachine = useMemo(
-    () => machines.find((machine) => machine.id === (selectedMachineId ?? machines[0]?.id)) ?? machines[0] ?? null,
-    [machines, selectedMachineId]
-  );
-  const statusDistribution = useMemo<StatusDistribution[]>(
-    () => buildStatusDistribution(machines),
-    [machines]
-  );
-  const trendLabels = useMemo(
-    () => buildTrendLabels(activePeriod, currentDashboard.trendSeries[0]?.values.length ?? 0),
-    [activePeriod, currentDashboard.trendSeries]
-  );
+  const [activePeriod, setActivePeriod] = useState<(typeof periods)[number]>("Weekly");
 
   useEffect(() => {
-    window.history.replaceState({ view: "overview" satisfies AppView }, "", window.location.href);
+    if (!beacon) return;
+    const machine = createMachineFromBeacon(beacon);
+    setMachines((currentMachines) => {
+      const next = [...currentMachines];
+      const idx = next.findIndex((item) => item.id === machine.id);
+      if (idx >= 0) {
+        next[idx] = machine;
+        return next;
+      }
+      return [machine, ...next];
+    });
+    setSelectedMachineId((current) => current ?? machine.id);
+  }, [beacon]);
 
-    const handlePopState = (event: PopStateEvent) => {
-      const nextView = (event.state?.view as AppView | undefined) ?? "overview";
-      setCurrentView(nextView);
-    };
+  const selectedMachine = useMemo(
+    () =>
+      machines.find((machine) => machine.id === (selectedMachineId ?? machines[0]?.id)) ??
+      machines[0] ??
+      null,
+    [machines, selectedMachineId],
+  );
 
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  const onlineMachines = useMemo(
+    () => machines.filter((machine) => machine.status === "Running"),
+    [machines],
+  );
 
-  const handleOpenMachine = (machine: Machine) => {
-    setSelectedMachineId(machine.id);
-    setCurrentView("machine-details");
-    window.history.pushState({ view: "machine-details" satisfies AppView, machineId: machine.id }, "", window.location.href);
-  };
+  const summary = useMemo(() => buildSummary(machines), [machines]);
 
-  const handleBackToOverview = () => {
-    if (window.history.state?.view === "machine-details") {
-      window.history.back();
-      return;
-    }
-
-    setCurrentView("overview");
-    window.history.replaceState({ view: "overview" satisfies AppView }, "", window.location.href);
-  };
+  const onSelectView = (view: string) => setCurrentView(view as AppView);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="mx-auto w-full max-w-[1700px] overflow-x-hidden px-[clamp(12px,2vw,22px)] py-6">
+    <div className="min-h-screen bg-slate-100 text-slate-900">
+      <div className="w-full px-0">
         <TopBar periods={periods} activePeriod={activePeriod} onPeriodChange={setActivePeriod} />
+        <div className="grid min-h-[calc(100vh-92px)] grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <AppSidebar items={sidebarItems} activePage={currentView} onSelectPage={onSelectView} />
 
-        {currentView === "machine-details" ? (
-          <MachineDetailsPage machine={selectedMachine} onBack={handleBackToOverview} />
-        ) : (
-          <section className="mt-5 grid gap-4 xl:grid-cols-[1.8fr_minmax(300px,0.95fr)]">
-            <div className="flex flex-col gap-4">
-              <SummaryPanel activePeriod={activePeriod} summaryStats={currentDashboard.summaryStats} />
-              <MetricStrip metricCards={currentDashboard.metricCards} />
-
-              <section className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
-                <article className="rounded-[18px] border border-slate-200 bg-white/95 p-4 shadow-panel">
-                  <div className="mb-3 flex items-center gap-3">
-                    <h3 className="text-[1.45rem] font-semibold text-slate-900">Testing Trends</h3>
-                  </div>
-                  <LineChart labels={trendLabels} trendSeries={currentDashboard.trendSeries} />
-                </article>
-
-                <StatusDistributionCard items={statusDistribution} />
+          <main className="min-w-0 bg-slate-100 px-4 py-5 lg:px-6">
+            {currentView === "machine-details" ? (
+              <section className="rounded-[18px] border border-slate-200 bg-white p-4 shadow-lg shadow-slate-200/60">
+                <MachineDetailsPage machine={selectedMachine} onBack={() => setCurrentView("overview")} />
               </section>
-
-              {error ? (
-                <div className="rounded-[18px] border border-rose-200 bg-rose-50/80 p-4 text-slate-700 font-semibold shadow-sm">
-                  Error: {error}
-                </div>
-              ) : null}
-              {isLoading ? (
-                <div className="rounded-[18px] border border-slate-200 bg-white/95 p-4 text-slate-700 font-semibold shadow-panel">
-                  Loading machine data...
-                </div>
-              ) : (
-                <MachineGrid
-                  machines={machines}
-                  selectedMachineId={selectedMachine?.id ?? null}
-                  onSelectMachine={handleOpenMachine}
-                />
-              )}
-            </div>
-
-            <DetailSidebar machine={selectedMachine} />
-          </section>
-        )}
-      </main>
+            ) : currentView === "overview" ? (
+              <ExecutiveSummaryPage
+                machines={machines}
+                onlineMachines={onlineMachines}
+                summary={summary}
+                machine={selectedMachine}
+                isConnected={isConnected}
+                onSelectMachine={(machine) => {
+                  setSelectedMachineId(machine.id);
+                  setCurrentView("machine-details");
+                }}
+              />
+            ) : (
+              <PageShell title={titleFor(currentView)} subtitle={subtitleFor(currentView)}>
+                {pageBody(currentView, machines, (machine) => {
+                  setSelectedMachineId(machine.id);
+                  setCurrentView("machine-details");
+                })}
+              </PageShell>
+            )}
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
 
-function buildStatusDistribution(machines: Machine[]): StatusDistribution[] {
-  const totals = machines.reduce(
-    (accumulator, machine) => {
-      accumulator[machine.status] += 1;
-      return accumulator;
-    },
-    { Running: 0, Idle: 0, Unsafe: 0, Down: 0, Offline: 0 }
-  );
-
-  return [
-    { label: "Running", value: totals.Running, color: "#3da556" },
-    { label: "Idle", value: totals.Idle, color: "#f3bb3d" },
-    { label: "Unsafe", value: totals.Unsafe, color: "#df4b43" },
-    { label: "Down", value: totals.Down, color: "#2a74d8" },
-    { label: "Offline", value: totals.Offline, color: "#344f72" },
-  ];
+function pageBody(view: AppView, machines: Machine[], onSelectMachine: (machine: Machine) => void) {
+  if (view === "overview") return null;
+  if (view === "shift-performance") {
+    return (
+      <div className="grid gap-4 md:grid-cols-4">
+        {["Batteries Tested", "Uptime Hours", "Utilization", "Online Machines"].map((label) => (
+          <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-700 shadow-lg shadow-slate-200/60">
+            {label}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (view === "machine-status") {
+    return <MachineStatusPage machines={machines} onSelectMachine={onSelectMachine} />;
+  }
+  if (view === "yield") return <div className="text-slate-700">Yield page.</div>;
+  if (view === "alarms") return <div className="text-slate-700">Alarms page.</div>;
+  if (view === "throughput") return <div className="text-slate-700">Throughput page.</div>;
+  if (view === "channels") return <div className="text-slate-700">Channel utilization page.</div>;
+  if (view === "machine-details") return <MachineDetailsPage machine={machines[0] ?? null} onBack={() => void 0} />;
+  return <div className="text-slate-700">Reports page.</div>;
 }
 
-function buildTrendLabels(period: Period, pointCount: number): string[] {
-  const now = new Date();
+function buildSummary(machines: Machine[]) {
+  const online = machines.filter((m) => m.status === "Running").length;
+  const offline = machines.length - online;
+  return {
+    kpis: [
+      { label: "Batteries Tested Today", value: String(sum(machines, "batteriesTested")), subtext: `Target 60 · <span class="text-rose-400">-${Math.max(0, 60 - sum(machines, "batteriesTested"))}</span>`, accent: "green" as const },
+      { label: "First-Pass Yield", value: `${yieldPct(machines)}%`, subtext: `Prev shift 89.2% · <span class="text-emerald-400">+2.3pp</span>`, accent: "blue" as const },
+      { label: "Machines Online", value: `${online} / ${Math.max(machines.length, 1)}`, subtext: `Uptime avg 98.4% today`, accent: "amber" as const },
+      { label: "Channel Utilization", value: `${utilPct(machines)}%`, subtext: `2 of 2 channels active`, accent: "teal" as const },
+      { label: "Open Faults", value: String(offline), subtext: `Ch 8 · ARBIN-RITESH · <span class="text-rose-400">Unresolved</span>`, accent: "red" as const },
+    ],
+  };
+}
 
-  return Array.from({ length: pointCount }, (_, index) => {
-    const reverseIndex = pointCount - index - 1;
-    const date = new Date(now);
+function sum(machines: Machine[], key: "batteriesTested" | "passed" | "failed" | "channelsInUse" | "totalChannels" | "uptimeHours") {
+  return machines.reduce((acc, machine) => acc + machine.metrics[key], 0);
+}
 
-    if (period === "Daily") {
-      date.setHours(now.getHours() - reverseIndex);
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
+function yieldPct(machines: Machine[]) {
+  const passed = sum(machines, "passed");
+  const failed = sum(machines, "failed");
+  return Math.round((passed / Math.max(passed + failed, 1)) * 1000) / 10;
+}
 
-    if (period === "Weekly") {
-      date.setDate(now.getDate() - reverseIndex);
-      return date.toLocaleDateString([], { weekday: "short" });
-    }
+function utilPct(machines: Machine[]) {
+  const inUse = sum(machines, "channelsInUse");
+  const total = sum(machines, "totalChannels");
+  return Math.round((inUse / Math.max(total, 1)) * 100);
+}
 
-    if (period === "Monthly") {
-      date.setDate(now.getDate() - reverseIndex * 7);
-      return date.toLocaleDateString([], { month: "short", day: "numeric" });
-    }
+function titleFor(view: AppView) {
+  const titles: Record<AppView, string> = {
+    overview: "Executive Production Summary",
+    "shift-performance": "Shift Performance",
+    "machine-status": "Machine Status",
+    yield: "Yield & Pass Rate",
+    alarms: "Alarms & Faults",
+    throughput: "Throughput",
+    channels: "Channel Utilization",
+    reports: "Reports",
+    "machine-details": "Machine Details",
+  };
+  return titles[view];
+}
 
-    date.setMonth(now.getMonth() - reverseIndex);
-    return date.toLocaleDateString([], { month: "short" });
-  });
+function subtitleFor(view: AppView) {
+  const subtitles: Record<AppView, string> = {
+    overview: "Live production posture, faults, and machine health.",
+    "shift-performance": "Production pace and uptime snapshot.",
+    "machine-status": "Machine registry and live bridge state.",
+    yield: "Pass/fail overview for the current shift.",
+    alarms: "Fault conditions requiring attention.",
+    throughput: "Testing volume versus target.",
+    channels: "Channel occupancy and spare capacity.",
+    reports: "Audit-oriented list of tracked machines.",
+    "machine-details": "Per-machine channel and test breakdown.",
+  };
+  return subtitles[view];
+}
+
+function createMachineFromBeacon(beacon: import("./models/bridge").BeaconPayload): Machine {
+  const channel: MachineChannel = {
+    id: `${beacon.machineName}-chan-1`,
+    name: "Channel 1",
+    testName: "Beacon Monitor",
+    slot: 1,
+    status: beacon.isOnline ? "Running" : "Idle",
+    result: beacon.isOnline ? "In Progress" : "Failed",
+    progress: beacon.isOnline ? 100 : 0,
+    voltage: 48,
+    current: 1.2,
+    capacityAh: 12.5,
+    energyWh: 600,
+    durationMinutes: 0,
+    details: {
+      batteryId: beacon.appId,
+      chemistry: "N/A",
+      cycleCount: 0,
+      temperatureC: 0,
+      internalResistanceMOhm: 0,
+      stateOfHealth: beacon.isOnline ? 100 : 0,
+      startedAt: beacon.timestampUtc,
+      updatedAt: beacon.timestampUtc,
+      notes: `WebSocket message received from ${beacon.stationName} (${beacon.apiBaseUrl}:${beacon.apiPort}).`,
+      measurements: [],
+    },
+  };
+
+  return {
+    id: beacon.apiBaseUrl,
+    name: beacon.machineName,
+    status: beacon.isOnline ? "Running" : "Offline",
+    tone: beacon.isOnline ? "running" : "offline",
+    operator: beacon.stationName,
+    ipAddress: `${beacon.apiBaseUrl}:${beacon.apiPort}`,
+    lastSeenUtc: beacon.timestampUtc,
+    channelsLabel: "1/1",
+    currentLabel: `${beacon.isOnline ? "1.2" : "0.0"} A`,
+    voltageLabel: "48 V",
+    capacityLabel: "Capacity",
+    capacityValue: beacon.isOnline ? "12.5 Ah" : "0 Ah",
+    percent: beacon.isOnline ? 100 : 0,
+    metrics: {
+      uptimeHours: beacon.isOnline ? 1 : 0,
+      downtimeHours: beacon.isOnline ? 0 : 1,
+      runningHours: beacon.isOnline ? 1 : 0,
+      batteriesTested: 1,
+      passed: beacon.isOnline ? 1 : 0,
+      failed: beacon.isOnline ? 0 : 1,
+      usagePercent: beacon.isOnline ? 100 : 0,
+      channelsInUse: 1,
+      totalChannels: 1,
+    },
+    channels: [channel],
+  };
 }
 
 export default App;

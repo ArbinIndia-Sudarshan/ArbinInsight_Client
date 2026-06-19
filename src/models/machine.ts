@@ -58,6 +58,7 @@ export type Machine = {
   tone: MachineTone;
   operator: string;
   ipAddress: string;
+  lastSeenUtc?: string;
   channelsLabel: string;
   currentLabel: string;
   voltageLabel: string;

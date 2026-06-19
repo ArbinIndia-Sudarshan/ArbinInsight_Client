@@ -25,7 +25,7 @@ function MachineGrid({ machines, selectedMachineId, onSelectMachine }: MachineGr
             onClick={() => onSelectMachine(machine)}
             type="button"
             className={`group w-full overflow-hidden rounded-[22px] border px-4 py-4 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-400 ${
-              selected ? "border-sky-400 bg-sky-50/80" : "border-slate-200 bg-white/95"
+              selected ? "border-sky-300 bg-sky-50" : "border-slate-200 bg-white"
             }`}
           >
             <div className={`rounded-[18px] bg-gradient-to-br px-4 py-4 text-white ${toneClasses[machine.tone] ?? toneClasses.slate}`}>
@@ -40,7 +40,7 @@ function MachineGrid({ machines, selectedMachineId, onSelectMachine }: MachineGr
               <div className="grid gap-2">
                 <div className="flex items-center justify-between text-sm font-medium text-slate-600">
                   <span>Channels {machine.channelsLabel}</span>
-                  <span className="text-slate-900 font-semibold">{machine.percent}%</span>
+                  <span className="font-semibold text-slate-900">{machine.percent}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                   <div
