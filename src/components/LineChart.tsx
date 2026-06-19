@@ -17,14 +17,14 @@ function LineChart({ labels, trendSeries }: LineChartProps) {
   const denominator = Math.max(labels.length - 1, 1);
 
   return (
-    <div className="line-chart">
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Testing trends chart">
+    <div className="rounded-[18px] border border-slate-200 bg-white/95 p-4 shadow-panel">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Testing trends chart" className="w-full overflow-visible">
         {yGrid.map((tick) => {
           const y = margin.top + innerHeight - (tick / maxValue) * innerHeight;
           return (
             <g key={tick}>
-              <line className="grid-line" x1={margin.left} x2={width - margin.right} y1={y} y2={y} />
-              <text x={margin.left - 20} y={y + 4}>
+              <line x1={margin.left} x2={width - margin.right} y1={y} y2={y} stroke="rgba(148, 163, 184, 0.28)" strokeWidth="1" />
+              <text x={margin.left - 22} y={y + 4} fill="#64748b" fontSize="12" textAnchor="end">
                 {tick}
               </text>
             </g>
@@ -34,7 +34,7 @@ function LineChart({ labels, trendSeries }: LineChartProps) {
         {labels.map((label, index) => {
           const x = margin.left + (innerWidth / denominator) * index;
           return (
-            <text key={`${label}-${index}`} x={x} y={height - 10} textAnchor="middle">
+            <text key={`${label}-${index}`} x={x} y={height - 10} fill="#64748b" fontSize="12" textAnchor="middle">
               {label}
             </text>
           );
@@ -55,8 +55,8 @@ function LineChart({ labels, trendSeries }: LineChartProps) {
 
           return (
             <g key={series.label}>
-              <polygon className="line-area" fill={series.fill} points={areaPoints} />
-              <polyline className="line-path" stroke={series.color} points={points.join(" ")} />
+              <polygon fill={series.fill} points={areaPoints} />
+              <polyline fill="none" stroke={series.color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" points={points.join(" ")} />
               {series.values.map((value, index) => {
                 const x = margin.left + (innerWidth / denominator) * index;
                 const y = margin.top + innerHeight - (value / maxValue) * innerHeight;
@@ -67,10 +67,10 @@ function LineChart({ labels, trendSeries }: LineChartProps) {
         })}
       </svg>
 
-      <div className="chart-legend">
+      <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-700">
         {trendSeries.map((series) => (
-          <span key={series.label}>
-            <i className="swatch" style={{ background: series.color }} />
+          <span key={series.label} className="inline-flex items-center gap-2">
+            <span className="inline-flex h-3 w-3 rounded-full" style={{ background: series.color }} />
             {series.label}
           </span>
         ))}

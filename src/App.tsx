@@ -63,22 +63,22 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
-      <main className="dashboard">
+    <div className="min-h-screen bg-slate-50">
+      <main className="mx-auto w-full max-w-[1700px] overflow-x-hidden px-[clamp(12px,2vw,22px)] py-6">
         <TopBar periods={periods} activePeriod={activePeriod} onPeriodChange={setActivePeriod} />
 
         {currentView === "machine-details" ? (
           <MachineDetailsPage machine={selectedMachine} onBack={handleBackToOverview} />
         ) : (
-          <section className="content-grid">
-            <div className="content-main">
+          <section className="mt-5 grid gap-4 xl:grid-cols-[1.8fr_minmax(300px,0.95fr)]">
+            <div className="flex flex-col gap-4">
               <SummaryPanel activePeriod={activePeriod} summaryStats={currentDashboard.summaryStats} />
               <MetricStrip metricCards={currentDashboard.metricCards} />
 
-              <section className="visual-row">
-                <article className="panel chart-card">
-                  <div className="section-heading">
-                    <h3>Testing Trends</h3>
+              <section className="grid gap-4 lg:grid-cols-[minmax(0,1.8fr)_minmax(280px,1fr)]">
+                <article className="rounded-[18px] border border-slate-200 bg-white/95 p-4 shadow-panel">
+                  <div className="mb-3 flex items-center gap-3">
+                    <h3 className="text-[1.45rem] font-semibold text-slate-900">Testing Trends</h3>
                   </div>
                   <LineChart labels={trendLabels} trendSeries={currentDashboard.trendSeries} />
                 </article>
@@ -86,9 +86,15 @@ function App() {
                 <StatusDistributionCard items={statusDistribution} />
               </section>
 
-              {error ? <div className="panel fetch-state">Error: {error}</div> : null}
+              {error ? (
+                <div className="rounded-[18px] border border-rose-200 bg-rose-50/80 p-4 text-slate-700 font-semibold shadow-sm">
+                  Error: {error}
+                </div>
+              ) : null}
               {isLoading ? (
-                <div className="panel fetch-state">Loading machine data...</div>
+                <div className="rounded-[18px] border border-slate-200 bg-white/95 p-4 text-slate-700 font-semibold shadow-panel">
+                  Loading machine data...
+                </div>
               ) : (
                 <MachineGrid
                   machines={machines}

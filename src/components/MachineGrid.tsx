@@ -7,51 +7,76 @@ type MachineGridProps = {
 };
 
 function MachineGrid({ machines, selectedMachineId, onSelectMachine }: MachineGridProps) {
+  const toneClasses: Record<string, string> = {
+    blue: "from-sky-500 to-slate-700",
+    green: "from-emerald-500 to-green-700",
+    red: "from-rose-500 to-red-700",
+    orange: "from-orange-400 to-orange-600",
+    slate: "from-slate-500 to-slate-700",
+  };
+
   return (
-    <section className="machine-grid">
-      {machines.map((machine) => (
-        <button
-          className={`machine-card machine-card--interactive${selectedMachineId === machine.id ? " is-selected" : ""}`}
-          key={machine.id}
-          onClick={() => onSelectMachine(machine)}
-          type="button"
-        >
-          <div className={`machine-card__header bg-${machine.tone}`}>
-            <h4>{machine.name}</h4>
-            <span className="machine-card__status">{machine.status}</span>
-          </div>
-          <div className="machine-card__body">
-            <div className="machine-card__channels">
-              <span>Channels {machine.channelsLabel}</span>
-              <div className="machine-card__battery">
-                <div className="machine-card__battery-fill" style={{ width: `${Math.max(12, machine.percent)}%` }} />
+    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {machines.map((machine) => {
+        const selected = selectedMachineId === machine.id;
+        return (
+          <button
+            key={machine.id}
+            onClick={() => onSelectMachine(machine)}
+            type="button"
+            className={`group w-full overflow-hidden rounded-[22px] border px-4 py-4 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-sky-400 ${
+              selected ? "border-sky-400 bg-sky-50/80" : "border-slate-200 bg-white/95"
+            }`}
+          >
+            <div className={`rounded-[18px] bg-gradient-to-br px-4 py-4 text-white ${toneClasses[machine.tone] ?? toneClasses.slate}`}>
+              <div className="flex items-start justify-between gap-3">
+                <h4 className="text-lg font-semibold">{machine.name}</h4>
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-white/90">
+                  {machine.status}
+                </span>
               </div>
             </div>
+            <div className="mt-4 grid gap-4">
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between text-sm font-medium text-slate-600">
+                  <span>Channels {machine.channelsLabel}</span>
+                  <span className="text-slate-900 font-semibold">{machine.percent}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-sky-600"
+                    style={{ width: `${Math.max(12, machine.percent)}%` }}
+                  />
+                </div>
+              </div>
 
-            <div className="machine-card__readings">
-              <div className="reading">
-                <strong>{machine.currentLabel}</strong>
-                <span>Current</span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Current</p>
+                  <p className="mt-2 text-xl font-semibold text-slate-900">{machine.currentLabel}</p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">Voltage</p>
+                  <p className="mt-2 text-xl font-semibold text-slate-900">{machine.voltageLabel}</p>
+                </div>
               </div>
-              <div className="reading">
-                <strong>{machine.voltageLabel}</strong>
-                <span>Voltage</span>
-              </div>
-            </div>
 
-            <div className="machine-card__progress">
-              <div className="machine-card__capacity">
-                <span>{machine.capacityLabel}</span>
-                <strong>{machine.capacityValue}</strong>
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="flex items-center justify-between text-sm font-medium text-slate-600">
+                  <span>{machine.capacityLabel}</span>
+                  <strong className="text-slate-900">{machine.capacityValue}</strong>
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-sky-500 to-cyan-600"
+                    style={{ width: `${machine.percent}%` }}
+                  />
+                </div>
               </div>
-              <div className="progress-bar">
-                <i style={{ width: `${machine.percent}%` }} />
-              </div>
-              <div className="machine-card__percent">{machine.percent}%</div>
             </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
     </section>
   );
 }

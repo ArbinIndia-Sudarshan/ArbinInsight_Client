@@ -19,18 +19,20 @@ function StatusDistributionCard({ items }: StatusDistributionCardProps) {
   };
 
   return (
-    <article className="panel donut-card">
-      <div className="section-heading">
-        <h3>Status Distribution</h3>
+    <article className="rounded-[18px] bg-white/95 border border-slate-200 shadow-panel p-4">
+      <div className="mb-4 flex items-center">
+        <h3 className="text-xl font-semibold text-slate-900">Status Distribution</h3>
       </div>
-      <div className="donut-layout">
-        <div className="donut" style={donutStyle} />
-        <div className="legend">
+      <div className="grid gap-4 lg:grid-cols-[minmax(150px,190px)_minmax(0,1fr)] items-center">
+        <div className="mx-auto w-full max-w-[190px] rounded-full" style={donutStyle}>
+          <div className="m-[54px] h-[calc(100%-108px)] rounded-full bg-slate-50" />
+        </div>
+        <div className="grid gap-3">
           {items.map((item) => (
-            <span key={item.label}>
-              <i className="swatch" style={{ background: item.color }} />
+            <div key={item.label} className="flex items-center gap-3 text-sm font-semibold text-slate-900">
+              <span className="inline-flex h-3 w-3 rounded" style={{ background: item.color }} />
               {item.label}
-            </span>
+            </div>
           ))}
         </div>
       </div>
