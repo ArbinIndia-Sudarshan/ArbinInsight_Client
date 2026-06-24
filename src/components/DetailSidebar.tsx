@@ -1,6 +1,5 @@
 import {
   activity,
-  heatmapColors,
 } from "../data/dashboardData";
 import type { Machine } from "../models/machine";
 import PressableIconButton from "./PressableIconButton";
@@ -130,23 +129,7 @@ function DetailSidebar({ machine }: DetailSidebarProps) {
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
-        <article className="rounded-[18px] border border-slate-200 bg-white/95 p-4 shadow-panel">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-xl font-semibold text-slate-900">Channel Status</h3>
-          </div>
-          <div className="grid grid-cols-[repeat(11,minmax(0,1fr))] gap-2 rounded-2xl bg-gradient-to-b from-slate-100 to-slate-200 p-2 border border-slate-200">
-            {heatmapColors.map((color, index) => (
-              <span key={index} className="aspect-square rounded-sm" style={{ background: color }} />
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold text-slate-900">
-            <span className="inline-flex items-center gap-2"><span className="inline-block h-3 w-3 rounded-full bg-emerald-500" />Active</span>
-            <span className="inline-flex items-center gap-2"><span className="inline-block h-3 w-3 rounded-full bg-amber-400" />Idle</span>
-            <span className="inline-flex items-center gap-2"><span className="inline-block h-3 w-3 rounded-full bg-rose-500" />Fault</span>
-          </div>
-        </article>
-
+      <section className="grid gap-4 xl:grid-cols-1">
         <article className="rounded-[18px] border border-slate-200 bg-white/95 p-4 shadow-panel">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-xl font-semibold text-slate-900">Recent Activity</h3>
