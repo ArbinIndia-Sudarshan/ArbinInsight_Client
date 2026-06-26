@@ -144,7 +144,7 @@ function ExecutiveSummaryPage({
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2 text-sm text-slate-700">
+                <div className="flex flex-col space-y-2 gap-2 text-sm text-slate-700">
                   <Legend color="bg-emerald-400" label="Passed: 43 batteries" />
                   <Legend color="bg-rose-400" label="Failed: 4 batteries" />
                   <Legend color="bg-slate-500" label="In Progress: 0" />

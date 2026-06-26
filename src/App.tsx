@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import TopBar from "./components/TopBar";
 import AppSidebar, { type SidebarItem } from "./components/AppSidebar";
+import LoginPage from "./components/LoginPage";
 import MachineDetailsPage from "./components/MachineDetailsPage";
 import ExecutiveSummaryPage from "./components/dashboard/ExecutiveSummaryPage";
 import MachineStatusPage from "./components/dashboard/MachineStatusPage";
@@ -32,6 +33,16 @@ const sidebarItems: SidebarItem[] = [
 ];
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+  }
+
+  return <DashboardApp />;
+}
+
+function DashboardApp() {
   const { beacon, isConnected } = useUdpBridge();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [selectedMachineId, setSelectedMachineId] = useState<string | null>(null);
